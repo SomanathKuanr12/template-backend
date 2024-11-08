@@ -30,7 +30,7 @@ const upload = multer({ storage: storage });
 router.post('/upload/:id', upload.single('file'), templateController.uploadFile);
 router.get('/template_list/:id', templateController.getFiles);
 router.post('/extract_placeholder',placeholderController.extractPlaceholders );
-
+router.post('/replace_placeholder',placeholderController.replacePlaceholders );
 router.post('/sign_up',loginController.userSignUp)
 
 router.post('/log_in',loginController.userLogIn)
