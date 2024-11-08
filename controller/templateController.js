@@ -62,8 +62,37 @@ const getFiles = (req, res) => {
     });
   };
   
+  const getDocument = (req, res) => {
+    const userId = req.params.id;
+    const search = req.query.searchTerm || '';
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const offset = (page - 1) * limit;
+    console.log(userId);
+    
+    const sql = `
+      SELECT * FROM document_info
+      WHERE user_id = ? AND filename LIKE ?
+      LIMIT ? OFFSET ?
+    `;
+    
+    con.query(sql, [userId, `%${search}%`, limit, offset], (err, results) => {
+      if (err) return res.status(500).json({ error: 'Failed to retrieve document' });
+      
+      // Get total count for pagination
+      const countSql = 'SELECT COUNT(*) AS total FROM document_info WHERE user_id = ? AND filename LIKE ?';
+      con.query(countSql, [userId, `%${search}%`], (countErr, countResults) => {
+        if (countErr) return res.status(500).json({ error: 'Failed to retrieve file count' });
+        console.log(results);
+        
+        const total = countResults[0].total;
+        res.json({ data: results, totalPages:total });
+      });
+    });
+  };  
 
 module.exports = {
     uploadFile,
     getFiles,
+    getDocument
 };

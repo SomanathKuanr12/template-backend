@@ -11,12 +11,16 @@ const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const uploadPath = path.join(__dirname, 'uploads');
         
+        
         // Check if directory exists; if not, create it
         if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath);
         }
+
+        
         
         cb(null, uploadPath);
+       
     },
     filename: (req, file, cb) => {
         cb(null, `${Date.now()}-${file.originalname}`);
@@ -29,6 +33,7 @@ const upload = multer({ storage: storage });
 // Define routes
 router.post('/upload/:id', upload.single('file'), templateController.uploadFile);
 router.get('/template_list/:id', templateController.getFiles);
+router.get('/document_list/:id', templateController.getDocument);
 router.post('/extract_placeholder',placeholderController.extractPlaceholders );
 router.post('/replace_placeholder',placeholderController.replacePlaceholders );
 router.post('/sign_up',loginController.userSignUp)

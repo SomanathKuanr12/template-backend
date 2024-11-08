@@ -1,4 +1,5 @@
 const fs = require('fs');
+const con=require('../config')
 const pdf = require('pdf-parse');
 const { PDFDocument,rgb } = require('pdf-lib');
 const mammoth = require('mammoth');
@@ -153,8 +154,11 @@ async function extractPlaceholders(req, res) {
 //     }
 // }
 
+
+
 async function replacePlaceholders(req, res) {
-    const filePath = "C:\\Users\\TEMP\\Desktop\\template generator\\template-backend\\router\\uploads\\1730989161175-Rent Agreement Example Template.pdf";
+    const filePath = req.body.fp;
+    const userid = req.body.userid;
     const placeholdersWithValues = req.body.placeholder; // e.g., { name: 'John Doe', price: '1000' }
     console.log(placeholdersWithValues);
 
@@ -193,15 +197,47 @@ async function replacePlaceholders(req, res) {
 
         // Save the new PDF with a modified filename
         const fileName = path.basename(filePath);
-        const outputPath = path.join(path.dirname(filePath), `new_modified_${fileName}`);
+        const outputPath = path.join(path.dirname(filePath), `modified_${fileName}`);
         await fs.promises.writeFile(outputPath, modifiedPdfBytes);
 
-        return res.json({ message: 'Placeholders replaced successfully', outputPath });
+        // Construct the URL path
+        const urlPath = `http://localhost:4700/${outputPath.substring(outputPath.indexOf('uploads')).replace(/\\/g, '/')}`;
+        const uploadsFolder = 'router\\uploads';
+
+// Extract the relative path from the `uploads` directory onward
+const filename = path.relative(uploadsFolder, outputPath);
+
+        // Prepare the insert query and use a promise to handle the result
+        const insertQuery = 'INSERT INTO document_info (user_id,filename,filepath, urlpath) VALUES (?,?, ?, ?)';
+        const values = [userid,filename, outputPath, urlPath];
+
+        // Create a promise-based wrapper for the MySQL query
+        const insertQueryPromise = new Promise((resolve, reject) => {
+            con.query(insertQuery, values, (err, results) => {
+                if (err) {
+                    reject('Error inserting into document_info table: ' + err);
+                } else {
+                    resolve(results);
+                }
+            });
+        });
+
+        // Wait for the query to finish before sending the response
+        await insertQueryPromise;
+
+        // Respond with the URL after the DB operation has been completed
+        console.log(urlPath);
+        return res.json({
+            message: 'Placeholders replaced successfully',
+            urlpath: urlPath
+        });
+
     } catch (error) {
         console.error('Error replacing placeholders:', error);
         return res.status(503).json({ error: 'Failed to replace placeholders in PDF' });
     }
 }
+
 
 // async function replacePlaceholders(req, res) {
 //     const filePath = "C:\\Users\\TEMP\\Desktop\\template generator\\template-backend\\router\\uploads\\1730989161175-Rent Agreement Example Template.pdf";
